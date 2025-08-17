@@ -217,6 +217,7 @@ def click_cancel_button_selenium(driver):
 
 
 def click_cancel_button(img_path=os.path.join(os.getcwd(), "cancel_button.png")):
+    print(img_path)
     # 취소 버튼 클릭용
     try:
         # 낮은 신뢰도부터 시도
