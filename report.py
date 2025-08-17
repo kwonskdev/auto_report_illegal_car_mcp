@@ -12,6 +12,9 @@ import pyautogui
 import requests
 import json
 
+CHROME_PATH = os.environ.get("CHROME")
+CHROMEDRIVER_PATH = os.environ.get("CHROMEDRIVER")
+
 
 @dataclass
 class ReportInfo:
@@ -66,9 +69,9 @@ def init_driver():
     options.add_argument("--disable-blink-features=AutomationControlled")
 
     # 자동으로 ChromeDriver 다운로드 및 설치
-    service = Service(executable_path=ChromeDriverManager().install())
+    options.binary_location = CHROME_PATH  # chrome_path를 binary_location에 지정
+    service = Service(executable_path=CHROMEDRIVER_PATH)  # chrome_driver_path 사용
     driver = webdriver.Chrome(service=service, options=options)
-    # driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": get_stealth_script()})
     return driver
 
