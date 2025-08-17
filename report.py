@@ -238,6 +238,7 @@ def click_cancel_button(img_path=os.path.join(os.getcwd(), "cancel_button.png"))
         
     except Exception as e:
         print(f"취소 버튼 클릭 중 오류 발생: {e}")
+        pyautogui.press("esc")
         return False
 
 
