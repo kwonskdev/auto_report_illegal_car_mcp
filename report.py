@@ -66,9 +66,9 @@ def init_driver():
     options.add_argument("--disable-blink-features=AutomationControlled")
 
     # 자동으로 ChromeDriver 다운로드 및 설치
-    # service = Service(ChromeDriverManager().install())
-    # driver = webdriver.Chrome(service=service, options=options)
-    driver = webdriver.Chrome(executable_path=ChromeDriverManager().install())
+    service = Service(executable_path=ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    # driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": get_stealth_script()})
     return driver
 
