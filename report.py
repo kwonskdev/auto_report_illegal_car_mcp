@@ -142,7 +142,7 @@ def reverse_geocoding(lat, lng):
             
             result['korean_address'] = ' '.join(korean_address_parts)
             
-            return result
+            return result['korean_address']
         
         return {
             'success': False,
@@ -171,15 +171,69 @@ def reverse_geocoding(lat, lng):
         }
 
 
-def click_cancel_button(img_path="cancel_button.png"):
+def click_cancel_button_selenium(driver):
+    """Selenium을 사용한 취소 버튼 클릭"""
+    try:
+        # 일반적인 취소 버튼 셀렉터들을 시도
+        cancel_selectors = [
+            "button[contains(text(), '취소')]",
+            "button[contains(text(), '닫기')]",
+            "button[contains(text(), 'Cancel')]",
+            "button[contains(text(), 'Close')]",
+            ".btn-cancel",
+            ".cancel-btn",
+            ".close-btn",
+            "[data-dismiss='modal']",
+            ".modal-close",
+            "button.btn.btn-secondary"
+        ]
+        
+        for selector in cancel_selectors:
+            try:
+                if selector.startswith("button[contains"):
+                    # XPath로 변환
+                    xpath = f"//{selector}"
+                    cancel_button = driver.find_element(By.XPATH, xpath)
+                else:
+                    cancel_button = driver.find_element(By.CSS_SELECTOR, selector)
+                
+                if cancel_button.is_displayed() and cancel_button.is_enabled():
+                    cancel_button.click()
+                    print(f"취소 버튼 클릭 완료 (셀렉터: {selector})")
+                    return True
+            except:
+                continue
+        
+        print("Selenium으로 취소 버튼을 찾을 수 없습니다.")
+        return False
+        
+    except Exception as e:
+        print(f"Selenium 취소 버튼 클릭 중 오류: {e}")
+        return False
+
+
+def click_cancel_button(img_path=os.path.join(os.getcwd(), "cancel_button.png")):
     # 취소 버튼 클릭용
     try:
-        btn_location = pyautogui.locateOnScreen(img_path, confidence=0.9)
-        if btn_location:
-            pyautogui.click(pyautogui.center(btn_location))
-            print("취소버튼 클릭 완료")
-    except Exception:
-        print("취소 버튼 없음")
+        # 낮은 신뢰도부터 시도
+        for confidence in [0.7, 0.6, 0.5, 0.4]:
+            try:
+                btn_location = pyautogui.locateOnScreen(img_path, confidence=confidence)
+                if btn_location:
+                    pyautogui.click(pyautogui.center(btn_location))
+                    print(f"취소버튼 클릭 완료 (신뢰도: {confidence})")
+                    return True
+            except pyautogui.ImageNotFoundException:
+                continue
+        
+        # 이미지를 찾지 못한 경우 스크린샷 저장
+        pyautogui.screenshot("debug_screenshot.png")
+        print("취소 버튼을 찾을 수 없습니다. debug_screenshot.png에 현재 화면을 저장했습니다.")
+        return False
+        
+    except Exception as e:
+        print(f"취소 버튼 클릭 중 오류 발생: {e}")
+        return False
 
 
 def select_violation_type(driver, violation_type="02"):
@@ -202,14 +256,18 @@ def select_violation_type(driver, violation_type="02"):
     select_obj.select_by_value(violation_type)
 
 
-def upload_file(driver, wait, file_name):
+def upload_file(driver, wait, file_names):
     # 지정경로 파일 업로드
-    iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[id^='raonkuploader_']")))
-    driver.switch_to.frame(iframe)
-    file_path = os.path.join(os.getcwd(), file_name)
-    file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
-    file_input.send_keys(file_path)
-    driver.switch_to.default_content()
+    
+    for file_name in file_names:
+        iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[id^='raonkuploader_']")))
+        driver.switch_to.frame(iframe)
+        file_path = os.path.join(os.getcwd(), file_name)
+        file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
+        file_input.send_keys(file_path)
+        print(f"{file_name} 파일 업로드 완료")
+
+        driver.switch_to.default_content()
 
 
 def find_location(driver, wait, latitude, longitude): 
@@ -236,7 +294,7 @@ def find_location(driver, wait, latitude, longitude):
     # 메인 윈도우로 다시 전환
     driver.switch_to.window(main_window)
 
-def fill_report_form(driver, title, description, datetime_str):
+def fill_report_form(driver, title, description, datetime):
     # 신고서 작성
 
     # 제목
@@ -249,9 +307,9 @@ def fill_report_form(driver, title, description, datetime_str):
         checkbox.click()
 
     # 발생 일시 입력
-    driver.find_element(By.ID, "DEVEL_DATE").send_keys(datetime_str.strftime("%Y-%m-%d"))
-    Select(driver.find_element(By.ID, "DEVEL_TIME_HH")).select_by_value(datetime_str.strftime("%H"))
-    Select(driver.find_element(By.ID, "DEVEL_TIME_MM")).select_by_value(datetime_str.strftime("%M"))
+    driver.find_element(By.ID, "DEVEL_DATE").send_keys(datetime.strftime("%Y-%m-%d"))
+    Select(driver.find_element(By.ID, "DEVEL_TIME_HH")).select_by_value(datetime.strftime("%H"))
+    Select(driver.find_element(By.ID, "DEVEL_TIME_MM")).select_by_value(datetime.strftime("%M"))
     
     
     # 로그인 시 불 필요 항목
@@ -268,14 +326,13 @@ def fill_report_form(driver, title, description, datetime_str):
     ).click()
 
 def run_report(
-    title: str,
-    vehicle_number: str,
-    violation_type: str,
-    latitude: float,
-    longitude: float,
-    datetime_str: str,
-    description: str,
-    video_files: list[str] = None,
+    video_files: list[str],
+    title: str = "교통위반 신고",
+    vehicle_number: str = "비공개",
+    violation_type: str = "02",
+    latitude: float = 0.0,
+    longitude: float = 0.0,
+    description: str = "교통위반 행위를 목격했습니다.",
     reporter_name: str = "익명",
     reporter_phone: str = "비공개",
     reporter_email: str = "비공개"
@@ -284,18 +341,23 @@ def run_report(
     driver = init_driver()
     wait = WebDriverWait(driver, 15)
     # login_safety_rul(driver, wait)
-    driver.get("https://www.safetyreport.go.kr")
+    driver.get("https://www.safetyreport.go.kr/#safereport/safereport3")
 
     try:
         # 신고하기 탭 클릭
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href,'#safereport')]"))).click()
-        time.sleep(3)
-        click_cancel_button()
+        # wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href,'#safereport')]"))).click()
+        # time.sleep(3)
+        # click_cancel_button()
 
-        # 자동차 신고 탭 클릭
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@href='#safereport/safereport3']"))).click()
+        # # 자동차 신고 탭 클릭
+        # wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@href='#safereport/safereport3']"))).click()
+
+        # 바로 차량 신고 페이지 접속
         time.sleep(3)
-        click_cancel_button()
+        
+        # 먼저 selenium으로 취소 버튼 시도, 실패하면 PyAutoGUI 사용
+        if not click_cancel_button_selenium(driver):
+            click_cancel_button()
 
         # 위반 유형 선택
         select_violation_type(driver, violation_type)
@@ -307,38 +369,49 @@ def run_report(
         find_location(driver, wait, latitude, longitude)
 
         # 신고 양식 작성 
-        fill_report_form(driver, title, description, datetime_str)
+        fill_report_form(driver, title, description,  datetime.now())
 
         print("신고가 완료되었습니다.")
         
     except Exception as e:
         print("신고 중 오류 발생:", e)
     finally:
-        time.sleep(500000)
+        time.sleep(10)
 
         driver.quit()
 
 if __name__ == "__main__":
     
-    sample_report = ReportInfo(
-        title="난폭운전 신고",
-        contents="난폭운전 행위를 목격했습니다.",
-        # phone="01095259873",
-        violation_type="08",
-        file_name="temp.mp4",
-        address_query="판교역로 166",
-        report_datetime=datetime.now()
-    )
+#     sample_report = ReportInfo(
+#         title="난폭운전 신고",
+#         contents="난폭운전 행위를 목격했습니다.",
+#         # phone="01095259873",
+#         violation_type="08",
+#         file_name="temp.mp4",
+#         address_query="판교역로 166",
+#         report_datetime=datetime.now()
+#     )
 
-    sample_report = {
-        'title':"난폭운전 신고",
-        'contents':"난폭운전 행위를 목격했습니다.",
-        # phone="01095259873",
-        'violation_type':"08",
-        'file_name':"temp.mp4",
-        'address_query':"판교역로 166",
-        'report_datetime':datetime.now()
-        }
-
+#     sample_report = {
+#         'title':"난폭운전 신고",
+#         'contents':"난폭운전 행위를 목격했습니다.",
+#         # phone="01095259873",
+#         'violation_type':"08",
+#         'file_name':"temp.mp4",
+#         'address_query':"판교역로 166",
+#         'report_datetime':datetime.now()
+#         }
     
-    run_report(**sample_report)
+    run_report(
+        video_files = [os.path.join(os.getcwd(), "temp.mp4")],
+        title = "교통위반 신고",
+        vehicle_number = "비공개",
+        violation_type = "02",
+        latitude = 37,
+        longitude = 127,
+        description = "교통위반 행위를 목격했습니다.",
+        reporter_name = "익명",
+        reporter_phone = "비공개",
+        reporter_email = "비공개"
+    )
+    # run_report(**sample_report)

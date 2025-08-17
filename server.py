@@ -28,14 +28,13 @@ def report_traffic_violation(
     violation_type: str,
     latitude: float,
     longitude: float,
-    datetime_str: str,
     description: str,
     video_files: list[str] = None,
     reporter_name: str = "익명",
     reporter_phone: str = "비공개",
     reporter_email: str = "비공개"
 ) -> str:
-    return run_report(title, vehicle_number, violation_type, latitude, longitude, datetime_str, description, video_files, reporter_name, reporter_phone, reporter_email)
+    return run_report(title, vehicle_number, violation_type, latitude, longitude, description, video_files, reporter_name, reporter_phone, reporter_email)
 
 
 @mcp.tool(
@@ -47,11 +46,7 @@ def get_address_from_geocoding(
     longitude: float
 ) -> str:
     result = reverse_geocoding(latitude, longitude)
-    if isinstance(result, dict) and result.get('success'):
-        return result.get('korean_address', result.get('full_address', '주소 정보 없음'))
-    else:
-        return f"주소 검색 실패: {result.get('error', '알 수 없는 오류')}"
-
+    return result
 
 if __name__ == "__main__":
     mcp.run()
