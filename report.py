@@ -384,6 +384,8 @@ def run_report(
 
         driver.quit()
 
+        return "신고했습니다."
+
 if __name__ == "__main__":
     
 #     sample_report = ReportInfo(
