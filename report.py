@@ -285,17 +285,12 @@ def upload_file(driver, wait, file_names):
     # 지정경로 파일 업로드
     
     for file_name in file_names:
-        with open("C:/Users/ijpark/Downloads/temp.txt", "a") as f:
-            f.write(file_name)
-            f.write("업로드 시도")
-
         iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[id^='raonkuploader_']")))
         driver.switch_to.frame(iframe)
-        file_path = os.path.join(os.getcwd()+"/temp_dir", file_name)
         file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
-        file_input.send_keys(file_path)
+        file_input.send_keys(file_name)
         print(f"{file_name} 파일 업로드 완료")
-        with open("C:/Users/ijpark/Downloads/temp.txt", "a") as f:
+        with open("C:/Users/LGCNS/Downloads/temp.txt", "a") as f:
             f.write(file_name)
             f.write("업로드 완료")
         
@@ -391,7 +386,7 @@ def run_report(
         # 먼저 selenium으로 취소 버튼 시도, 실패하면 PyAutoGUI 사용
         if not click_cancel_button_selenium(driver):
             click_cancel_button()
-            time.sleep(15)
+            time.sleep(1)
 
         # 위반 유형 선택
         select_violation_type(driver, violation_type)
