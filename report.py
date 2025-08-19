@@ -14,7 +14,8 @@ import json
 
 CHROME_PATH = os.environ.get("CHROME")
 CHROMEDRIVER_PATH = os.environ.get("CHROMEDRIVER")
-
+if not CHROME_PATH or not CHROMEDRIVER_PATH:
+    raise ValueError("CHROME 및 CHROMEDRIVER 환경 변수가 설정되어야 합니다.")
 
 @dataclass
 class ReportInfo:
@@ -216,25 +217,43 @@ def click_cancel_button_selenium(driver):
         return False
 
 
-def click_cancel_button(img_path=os.path.join(os.getcwd(), "cancel_button.png")):
-    print(img_path)
+def click_cancel_button(img_path=None):
+    if img_path is None:
+        # 현재 파일과 같은 디렉터리에 있는 cancel_button.png 사용
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        img_path = os.path.join(current_dir, "cancel_button.png")
+    print(f"[DEBUG] 취소 버튼 이미지 경로: {img_path}")
+    
+    # 이미지 파일 존재 확인
+    if not os.path.exists(img_path):
+        print(f"[ERROR] 취소 버튼 이미지 파일을 찾을 수 없습니다: {img_path}")
+        # return False
+    
+    print(f"[SUCCESS] 취소 버튼 이미지 파일 확인됨: {img_path}")
     # 취소 버튼 클릭용
     try:
         # 낮은 신뢰도부터 시도
         for confidence in [0.7, 0.6, 0.5, 0.4]:
             try:
+                with open("temp.txt", "a") as f:
+                    f.write(img_path)
+                    f.write("")
                 btn_location = pyautogui.locateOnScreen(img_path, confidence=confidence)
                 if btn_location:
                     pyautogui.click(pyautogui.center(btn_location))
                     print(f"취소버튼 클릭 완료 (신뢰도: {confidence})")
                     return True
             except pyautogui.ImageNotFoundException:
+                with open("C:/Users/ijpark/Downloads/temp.txt", "a") as f:
+                    f.write("button cannot find")
+                    f.write("")
                 continue
         
         # 이미지를 찾지 못한 경우 스크린샷 저장
         pyautogui.screenshot("debug_screenshot.png")
         print("취소 버튼을 찾을 수 없습니다. debug_screenshot.png에 현재 화면을 저장했습니다.")
-        return False
+        pyautogui.press("esc")
+        # return False
         
     except Exception as e:
         print(f"취소 버튼 클릭 중 오류 발생: {e}")
@@ -266,12 +285,20 @@ def upload_file(driver, wait, file_names):
     # 지정경로 파일 업로드
     
     for file_name in file_names:
+        with open("C:/Users/ijpark/Downloads/temp.txt", "a") as f:
+            f.write(file_name)
+            f.write("업로드 시도")
+
         iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[id^='raonkuploader_']")))
         driver.switch_to.frame(iframe)
-        file_path = os.path.join(os.getcwd(), file_name)
+        file_path = os.path.join(os.getcwd()+"/temp_dir", file_name)
         file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
         file_input.send_keys(file_path)
         print(f"{file_name} 파일 업로드 완료")
+        with open("C:/Users/ijpark/Downloads/temp.txt", "a") as f:
+            f.write(file_name)
+            f.write("업로드 완료")
+        
 
         driver.switch_to.default_content()
 
@@ -364,6 +391,7 @@ def run_report(
         # 먼저 selenium으로 취소 버튼 시도, 실패하면 PyAutoGUI 사용
         if not click_cancel_button_selenium(driver):
             click_cancel_button()
+            time.sleep(15)
 
         # 위반 유형 선택
         select_violation_type(driver, violation_type)
@@ -386,7 +414,10 @@ def run_report(
 
         driver.quit()
 
-        return "신고했습니다."
+        return json.dumps({
+            "dir": os.listdir(os.path.dirname(os.path.abspath(__file__))),
+            "abspath": os.path.abspath(__file__)
+        })
 
 if __name__ == "__main__":
     

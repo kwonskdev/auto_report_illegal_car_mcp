@@ -24,17 +24,29 @@ mcp = FastMCP("safety-report-tools")
 )
 def report_traffic_violation(
     title: str,
-    vehicle_number: str,
-    violation_type: str,
-    latitude: float,
-    longitude: float,
     description: str,
+    vehicle_number: str="12허3456",
+    violation_type: str="02",
+    latitude: float=33.5072,    
+    longitude: float=126.4938,
     video_files: list[str] = None,
     reporter_name: str = "익명",
     reporter_phone: str = "비공개",
     reporter_email: str = "비공개"
 ) -> str:
-    return run_report(title, vehicle_number, violation_type, latitude, longitude, description, video_files, reporter_name, reporter_phone, reporter_email)
+
+    return run_report(
+        title=title, 
+        vehicle_number=vehicle_number, 
+        violation_type=violation_type, 
+        latitude=latitude, 
+        longitude=longitude, 
+        description=description, 
+        video_files=video_files, 
+        reporter_name=reporter_name, 
+        reporter_phone=reporter_phone, 
+        reporter_email=reporter_email
+        )
 
 
 @mcp.tool(
@@ -42,8 +54,8 @@ def report_traffic_violation(
     description="Reverse geocoding to get address from latitude and longitude",
 )
 def get_address_from_geocoding(
-    latitude: float,
-    longitude: float
+    latitude: float=33.5072,
+    longitude: float=126.4938
 ) -> str:
     result = reverse_geocoding(latitude, longitude)
     return result
